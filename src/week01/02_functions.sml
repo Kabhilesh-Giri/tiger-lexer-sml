@@ -25,3 +25,7 @@ Int.abs ~4;
 
 Int.min(7, Int.sign 12); (*Evaluate from inside out -> Int.sign gives you 1 because it is a positive then Int.min(7, 1) gives you 1*)
 
+fun sqr x : int = x * x;
+
+sqr 4;
+
