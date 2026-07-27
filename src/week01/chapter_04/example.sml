@@ -1,5 +1,9 @@
+datatype degree = Duke |
+    Earl | 
+    Baron ;
+
 datatype person = king 
-    | Peer of string * string * int
+    | Peer of degree * string * int
     | knight of string
     | Peasant of string;
 
