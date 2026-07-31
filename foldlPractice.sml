@@ -1,0 +1,1 @@
+fun foldl f e [] = e | foldl f e (x::xs) = foldl f (f (x,e)) xs;

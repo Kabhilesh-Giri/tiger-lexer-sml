@@ -1,0 +1,3 @@
+fun wrap open_ close_ s = open_ ^ s ^ close_;
+
+
