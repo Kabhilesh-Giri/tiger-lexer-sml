@@ -4,6 +4,9 @@ type lexresult = Tokens.token
 val lineNum = ErrorMsg.lineNum
 val linePos = ErrorMsg.linePos
 val counter = ref 0;
+
+val inStringFlag = ref 0;
+
 fun err(p1,p2) = ErrorMsg.error p1
 
 val strBuffer = ref ""
@@ -24,7 +27,13 @@ fun eof() = let
     in
     if(!counter <> 0) then
     (
-        ErrorMsg.error pos "Error: close the */ comment";
+        ErrorMsg.error pos "Error: close the */ comment\n";
+        Tokens.EOF(pos,pos)
+    )
+
+    else if (!inStringFlag <> 0) then 
+    (
+        ErrorMsg.error pos "Error: close the string\n";
         Tokens.EOF(pos,pos)
     )
     else
@@ -54,6 +63,7 @@ fun eof() = let
 
 <INITIAL> ["] => (
     YYBEGIN STRING;
+    inStringFlag := 1;
     (*print("String Mode Started\n");*)
     resetBuffer();
     continue()
@@ -61,9 +71,12 @@ fun eof() = let
 
 <STRING> ["] => (
     YYBEGIN INITIAL;
+    inStringFlag := 0;
     (*print("STRING MODE OVER INITIAL MODE STARTED\n");*)
     Tokens.STRING(!strBuffer, yypos, yypos + size (!strBuffer))
 );
+
+<INITIAL,STRING>\n	=> (lineNum := !lineNum+1; linePos := yypos :: !linePos; continue());
 
 <STRING>. => (
     addString(yytext); 
@@ -76,7 +89,6 @@ fun eof() = let
 <COMMENT>. => (continue());
 <COMMENT>\n => (lineNum := !lineNum+1; linePos := yypos :: !linePos; continue());
 
-<INITIAL>\n	=> (lineNum := !lineNum+1; linePos := yypos :: !linePos; continue());
 <INITIAL>","	=> (Tokens.COMMA(yypos,yypos+1));
 <INITIAL>">=" => (Tokens.GE(yypos, yypos+2));
 <INITIAL>">" => (Tokens.GT(yypos, yypos+1));

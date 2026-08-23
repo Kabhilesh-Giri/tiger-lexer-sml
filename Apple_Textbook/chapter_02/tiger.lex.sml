@@ -8,6 +8,9 @@ type lexresult = Tokens.token
 val lineNum = ErrorMsg.lineNum
 val linePos = ErrorMsg.linePos
 val counter = ref 0;
+
+val inStringFlag = ref 0;
+
 fun err(p1,p2) = ErrorMsg.error p1
 
 val strBuffer = ref ""
@@ -28,7 +31,13 @@ fun eof() = let
     in
     if(!counter <> 0) then
     (
-        ErrorMsg.error pos "Error: close the */ comment";
+        ErrorMsg.error pos "Error: close the */ comment\n";
+        Tokens.EOF(pos,pos)
+    )
+
+    else if (!inStringFlag <> 0) then 
+    (
+        ErrorMsg.error pos "Error: close the string\n";
         Tokens.EOF(pos,pos)
     )
     else
@@ -79,7 +88,7 @@ val s = [
 \\095"
 ),
  (5, 
-"\102\102\102\102\102\102\102\102\102\102\000\102\102\102\102\102\
+"\102\102\102\102\102\102\102\102\102\102\093\102\102\102\102\102\
 \\102\102\102\102\102\102\102\102\102\102\102\102\102\102\102\102\
 \\102\102\103\102\102\102\102\102\102\102\102\102\102\102\102\102\
 \\102\102\102\102\102\102\102\102\102\102\102\102\102\102\102\102\
@@ -696,17 +705,17 @@ in Vector.fromList(List.map g
 {fin = [(N 72),(N 163)], trans = 0},
 {fin = [(N 7),(N 163)], trans = 0},
 {fin = [(N 159),(N 163)], trans = 0},
-{fin = [(N 24)], trans = 0},
-{fin = [(N 161),(N 163)], trans = 0},
-{fin = [(N 20)], trans = 0},
-{fin = [(N 14),(N 20)], trans = 96},
-{fin = [(N 14)], trans = 96},
-{fin = [(N 16),(N 20)], trans = 81},
-{fin = [(N 18),(N 20)], trans = 99},
-{fin = [(N 5)], trans = 0},
-{fin = [(N 22)], trans = 0},
 {fin = [(N 11)], trans = 0},
-{fin = [(N 9),(N 11)], trans = 0}])
+{fin = [(N 161),(N 163)], trans = 0},
+{fin = [(N 22)], trans = 0},
+{fin = [(N 16),(N 22)], trans = 96},
+{fin = [(N 16)], trans = 96},
+{fin = [(N 18),(N 22)], trans = 81},
+{fin = [(N 20),(N 22)], trans = 99},
+{fin = [(N 5)], trans = 0},
+{fin = [(N 24)], trans = 0},
+{fin = [(N 13)], trans = 0},
+{fin = [(N 9),(N 13)], trans = 0}])
 end
 structure StartStates =
 	struct
@@ -752,19 +761,19 @@ let fun continue() = lex() in
 
   102 => (Tokens.IN(yypos, yypos+2))
 | 106 => (Tokens.NIL(yypos, yypos+3))
-| 11 => let val yytext=yymktext() in 
-    addString(yytext); 
-    continue()
- end
+| 11 => (lineNum := !lineNum+1; linePos := yypos :: !linePos; continue())
 | 110 => (Tokens.LET(yypos, yypos+3))
 | 113 => (Tokens.DO(yypos, yypos+2))
 | 116 => (Tokens.TO(yypos, yypos+2))
 | 120 => (Tokens.FOR(yypos, yypos+3))
 | 126 => (Tokens.WHILE(yypos, yypos+5))
+| 13 => let val yytext=yymktext() in 
+    addString(yytext); 
+    continue()
+ end
 | 131 => (Tokens.ELSE(yypos, yypos+4))
 | 136 => (Tokens.THEN(yypos, yypos+4))
 | 139 => (Tokens.IF(yypos, yypos+2))
-| 14 => (continue())
 | 145 => (Tokens.ARRAY(yypos, yypos+5))
 | 150 => (Tokens.TYPE(yypos, yypos+4))
 | 154 => (Tokens.VAR(yypos,yypos+3))
@@ -780,7 +789,7 @@ let fun continue() = lex() in
     continue()
     )
 | 20 => (continue())
-| 22 => (lineNum := !lineNum+1; linePos := yypos :: !linePos; continue())
+| 22 => (continue())
 | 24 => (lineNum := !lineNum+1; linePos := yypos :: !linePos; continue())
 | 26 => (Tokens.COMMA(yypos,yypos+1))
 | 29 => (Tokens.GE(yypos, yypos+2))
@@ -813,6 +822,7 @@ let fun continue() = lex() in
 | 67 => (Tokens.COLON(yypos, yypos+1))
 | 7 => (
     YYBEGIN STRING;
+    inStringFlag := 1;
     (*print("String Mode Started\n");*)
     resetBuffer();
     continue()
@@ -824,6 +834,7 @@ let fun continue() = lex() in
 | 86 => (Tokens.FUNCTION(yypos, yypos+8))
 | 9 => (
     YYBEGIN INITIAL;
+    inStringFlag := 0;
     (*print("STRING MODE OVER INITIAL MODE STARTED\n");*)
     Tokens.STRING(!strBuffer, yypos, yypos + size (!strBuffer))
 )
