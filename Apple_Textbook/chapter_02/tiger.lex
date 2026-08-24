@@ -76,7 +76,25 @@ fun eof() = let
     Tokens.STRING(!strBuffer, yypos, yypos + size (!strBuffer))
 );
 
-<INITIAL,STRING>\n	=> (lineNum := !lineNum+1; linePos := yypos :: !linePos; continue());
+<STRING> "\\n" => (
+    strBuffer := !strBuffer ^ "\n";
+    continue()
+);
+
+<STRING> "\\t" => (
+    strBuffer := !strBuffer ^ "\t";
+    continue()
+);
+
+<STRING> "\\\\" => (
+    strBuffer := !strBuffer ^ "\\";
+    continue()
+);
+
+<STRING> "\\". => (
+    ErrorMsg.error yypos ("Error: Invalid backslash " ^ yytext ^ "\n");
+    continue()
+);
 
 <STRING>. => (
     addString(yytext); 
@@ -86,9 +104,10 @@ fun eof() = let
 <COMMENT>[a-zA-Z][a-zA-Z0-9]* => (continue());
 <COMMENT>"/" => (continue());
 <COMMENT>"*" => (continue());
+<COMMENT>"\n" => (lineNum := !lineNum+1; linePos := yypos :: !linePos; continue());
 <COMMENT>. => (continue());
-<COMMENT>\n => (lineNum := !lineNum+1; linePos := yypos :: !linePos; continue());
 
+<INITIAL,STRING>"\n" => (lineNum := !lineNum+1; linePos := yypos :: !linePos; continue());
 <INITIAL>","	=> (Tokens.COMMA(yypos,yypos+1));
 <INITIAL>">=" => (Tokens.GE(yypos, yypos+2));
 <INITIAL>">" => (Tokens.GT(yypos, yypos+1));
